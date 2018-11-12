@@ -1,0 +1,980 @@
+﻿<!DOCTYPE html>
+<html language="en-US">
+<head>
+<title>TrelloExport Bibliography</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.10/css/all.css" integrity="sha384-+d0P83n9kaQMCwj8F4RJB66tzIwOKmrdb46+porD/OvrJ+37WqIM7UoBtwHO6Nlg" crossorigin="anonymous">
+<link type="text/css" rel="stylesheet" href="chrome-extension://kmmnaeamjfdnbhljpedgfchjbkbomahp/templates/bibliography.css">
+</head>
+<body>
+<div class="container">
+                                                                        <h1>Knowledge Base</h1>
+                                                                            <h2>// Guides and Tutorials</h2>
+                                    
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">TSCC Guidelines</a></h3>        
+                        <div class="description">
+                            <p class="text"><h1 id="notesontscc">Notes on TSCC</h1>
+
+<ul>
+<li>Job Queue: Greenplanet uses the SLURM job queuing system. For more information, see the Greenplanet SLURM docs.</li>
+
+<li>TSCC Distributed File systems
+
+
+<ul>
+<li>Primary: <code>$HOME</code></li>
+
+<li>Scratch: <code>/oasis/tscc/scratch/$USER</code></li>
+
+<li>Compute: ~~<code>/state/partition1/$USER/$PBS_JOBID</code>~~
+
+
+<ul>
+<li>Copy files to the local compute node using <code>$TMPDIR</code> which is set by the job scheduler</li></ul>
+</li></ul>
+</li>
+
+<li>Purge Policy: Please be aware that there is a 90 day purge policy for scratch spaces. Files older than this will be automatically deleted.</li>
+
+<li>Symlinks: <code>ln -s /oasis/tscc/scratch/$USER $HOME/oasis</code></li>
+</ul>
+
+<h1 id="importantguidelinesforrunningjobsontscc">Important Guidelines for Running Jobs on TSCC</h1>
+
+<ul>
+<li>Please do not write job output to your home directory (<code>/home/$USER</code>). NFS filesystems have a single server which handles all the metadata and storage requirements. This means that if a job writes from multiple compute nodes and cores, the load is focused on this one server.</li>
+
+<li>The Lustre parallel filesystem (<code>/oasis/tscc/scratch</code>) is optimized for efficient handling of large files, however it doesn't work nearly as well when writing many small files. We recommend using this filesystem only if your metadata load is modest &#8211; i.e., you have O(10)-O(200) files open simultaneously.</li>
+
+<li>Use local scratch (<code>/state/partition1/$USER/$PBS_JOBID</code>) if your job writes a lot of files from each task. The local scratch filesystem is purged at the end of each job, so you will need to copy out files that you want to retain after the job completes.</li>
+</ul>
+
+<h1 id="resourcerequests">Resource requests:</h1>
+
+<ul>
+<li>Jobs sent to the <strong>home</strong> queue use: <code>#PBS -l nodes=1:ppn=2</code></li>
+
+<li>All other queues <strong>glean, (gpu-)condo, (gpu-)hotel</strong> use <code>#PBS -l nodes=1:ppn=3</code></li>
+
+<li>You must include the flag <code>#PBS -A mobley-&amp;lt;USERNAME&amp;gt;</code> in order for jobs to startup. Otherwise they will remain in the queue</li>
+
+<li>Note: Array jobs cannot use GPUs</li>
+</ul>
+
+<h2 id="annualresourceallocation">Annual resource allocation</h2>
+
+<ul>
+<li>&quot;GPU usage is calculated based on proportion of host cores allocated, i.e., running on one GPU for one hour requires two host service units&quot;. </li>
+
+<li>543,821 SUs == 271,910 TitanX GPU hours or 2 ServiceUnit (SU): 1 Titanx GPU hour</li>
+
+<li>Each user is allocated 42K SU where 150K SU are kept in reserve and can be distributed upon request.</li>
+
+<li>Use <code>gbalance -u $USER</code> to check your SU balance.</li>
+</ul>
+
+<h1 id="notesontsccusage">Notes on TSCC Usage:</h1>
+
+<ul>
+<li>User&#8217;s computing jobs requiring a number of cores less than or equal to the number of purchased cores are guaranteed to start within eight hours of submission and may run for an unlimited period of time. User&#8217;s jobs that require the common nodes (&#8220;hotel&#8221; nodes &#8211; see Program Description) must share a queue with other users and are limited to a 168-hour runtime.  </li>
+
+<li>User may also submit &#8220;gleaning&#8221; jobs to run on idle compute nodes throughout the cluster.  Such <strong>jobs are not charged against User&#8217;s service unit balance</strong> but are subject to immediate preemption by higher priority jobs. Jobs running on glean are <em>immediately</em> killed if signalled for termination by a higher priority job. Use periodic checkpoints to restart jobs.</li>
+
+<li>Jobs running on <code>glean</code> are immediately killed</li>
+</ul>
+
+<h1 id="tsccresources">TSCC Resources</h1>
+
+<p><a href="https://www.sdsc.edu/support/user_guides/tscc.html">TSCC User Guide</a>
+<a href="https://www.sdsc.edu/support/user_guides/tscc-quick-start.html">TSCC Quick Start Guide</a></p>
+
+<h2 id="examplepbsscript">Example PBS Script</h2>
+
+<pre><code class="bash language-bash">#!/bin/bash
+
+#PBS -N FCW_1_0_c3
+
+#PBS -q home
+#PBS -l nodes=1:ppn=2:gpu
+
+# PBS -q gpu-hotel
+# PBS -q gpu-condo
+# PBS -l nodes=1:ppn=3
+
+#PBS -l walltime=96:00:00
+#PBS -A mobley-&amp;lt;USERNAME&amp;gt;
+# PBS -M &amp;lt;USERNAME&amp;gt;@uci.edu
+# PBS -m ae
+
+
+#Activate conda environment
+. $HOME/anaconda3/etc/profile.d/conda.sh
+conda activate floes
+conda list
+
+#Set CUDA Path/version
+echo &amp;quot;LOADING CUDA DRIVERS&amp;quot;
+module load cuda/9.0.176
+nvcc -V
+echo 'CUDA DEVICE:' &amp;quot;$CUDA_VISIBLE_DEVICES&amp;quot;
+
+#Set environment variables
+export copy_local=&amp;quot;yes&amp;quot;
+export JOBNAME=${PBS_JOBNAME%-*}
+export JOBID=${PBS_JOBID%%.*}
+export output_dir=&amp;quot;${JOBID}&amp;quot;
+export CUDA_VISIBLE_DEVICES=&amp;quot;$CUDA_VISIBLE_DEVICES&amp;quot;
+
+#########################################
+
+pbs_startjob(){
+#----------------- Actual calculation command goes here: ---------------------------#
+# Remove the ARRAYID from the jobname
+JOBNAME=${PBS_JOBNAME%-*}
+echo &amp;quot;Submitting ${PBS_JOBNAME}&amp;quot;
+echo &amp;quot;Job directory: ${PBS_O_WORKDIR}&amp;quot;
+echo &amp;quot;PWD: $(pwd)&amp;quot;
+ls -lht
+
+echo &amp;quot;COPYING BLUES CONFIG FILES&amp;quot;
+mkdir -p $output_dir
+cp ${PBS_O_WORKDIR}/*${JOBNAME}* $output_dir/
+cp ${PBS_O_WORKDIR}/rotmove_cuda.yaml $output_dir/
+cp ${PBS_O_WORKDIR}/seh_rotmove.py $output_dir/
+cd $output_dir
+
+echo &amp;quot;PWD: $(pwd)&amp;quot;
+ls -lht
+echo 'CUDA DEVICE:' &amp;quot;$CUDA_VISIBLE_DEVICES&amp;quot;
+
+sed -i -e &amp;quot;s/PBS_JOBNAME/${JOBNAME}/g&amp;quot; seh_rotmove.py
+sed -i -e &amp;quot;s/PBS_JOBNAME-N/${JOBNAME}-${JOBID}/g&amp;quot; rotmove_cuda.yaml
+
+python -u seh_rotmove.py
+
+echo Job Done
+#-----------------------------------------------------------------------------------
+}
+
+# Function to echo informational output
+pbs_info_out(){
+# Informational output
+echo ------------------------------------------------------
+echo -n 'Job is running on node '; cat $PBS_NODEFILE
+echo ------------------------------------------------------
+date
+echo PBS: qsub is running on $PBS_O_HOST
+echo PBS: originating queue is $PBS_O_QUEUE
+echo PBS: executing queue is $PBS_QUEUE
+echo PBS: working directory is $PBS_O_WORKDIR
+echo PBS: execution mode is $PBS_ENVIRONMENT
+echo PBS: job identifier is $PBS_JOBID
+echo PBS: job name is $PBS_JOBNAME
+echo PBS: node file is $PBS_NODEFILE
+echo PBS: current home directory is $PBS_O_HOME
+echo PBS: PATH = $PBS_O_PATH
+echo ------------------------------------------------------
+}
+
+
+copy_to_compute(){
+echo &amp;quot;COPYING CONTENTS TO COMPUTE NODE&amp;quot;
+# Copy data to a local work directory:
+if [ &amp;quot;$copy_local&amp;quot; = &amp;quot;yes&amp;quot; ]; then
+  echo $HOSTNAME &amp;gt; $PBS_O_WORKDIR/PBS_WORK_NODE-$PBS_JOBID
+  if [ &amp;quot;$?&amp;quot; -ne &amp;quot;0&amp;quot; ]; then
+    echo &amp;quot;Unable to write $PBS_O_WORKDIR/PBS_WORK_NODE-$PBS_JOBID&amp;quot;
+    echo &amp;quot;$PBS_JOBID on node $HOSTNAME failed to write $PBS_O_WORKDIR/PBS_WORK_NODE-$PBS_JOBID &amp;quot; &amp;gt;&amp;gt; $HOME/PBS_WARNINGS
+    echo &amp;quot;$PBS_O_WORKDIR/PBS_WORK_NODE-$PBS_JOBID should contain:&amp;quot; &amp;gt;&amp;gt; $HOME/PBS_WARNINGS
+    echo &amp;quot;$HOSTNAME&amp;quot; &amp;gt;&amp;gt; $HOME/PBS_WARNINGS
+  fi
+  mkdir -p $TMPDIR
+  if (( $? != 0)); then
+    echo &amp;quot;FAIL: rsync to local execution directory had problems. Aborting job.&amp;quot;
+    exit 1
+  else
+    echo &amp;quot;$TMPDIR&amp;quot; &amp;gt; $PBS_O_WORKDIR/PBS_WORK_DIR-$PBS_JOBID
+    if [ &amp;quot;$?&amp;quot; -ne &amp;quot;0&amp;quot; ]; then
+      echo &amp;quot;Unable to write $PBS_O_WORKDIR/PBS_WORK_DIR-$PBS_JOBID&amp;quot;
+      echo &amp;quot;$PBS_JOBID on node $HOSTNAME failed to write $PBS_O_WORKDIR/PBS_WORK_DIR-$PBS_JOBID&amp;quot; &amp;gt;&amp;gt; $HOME/PBS_WARNINGS
+      echo &amp;quot;$PBS_O_WORKDIR/PBS_WORK_DIR-$PBS_JOBID should contain:&amp;quot; &amp;gt;&amp;gt; $HOME/PBS_WARNINGS
+      echo &amp;quot;$TMPDIR&amp;quot; &amp;gt;&amp;gt; $HOME/PBS_WARNINGS
+    fi
+  fi
+  cd $TMPDIR
+fi
+}
+
+copy_from_compute(){
+echo &amp;quot;COPYING CONTENTS BACK FROM COMPUTE NODE&amp;quot;
+#Copy data from the compute directory
+if [ &amp;quot;$copy_local&amp;quot; = &amp;quot;yes&amp;quot; ]; then
+  rsync -avhP --include=&amp;quot;*.rst7&amp;quot; --include=&amp;quot;*.pdb&amp;quot; --include=&amp;quot;*.dcd&amp;quot; --include=&amp;quot;*.nc&amp;quot; --include=&amp;quot;*.log&amp;quot; --include=&amp;quot;*.ene&amp;quot; --include=&amp;quot;${output_dir}&amp;quot; --exclude=&amp;quot;*&amp;quot; $TMPDIR/ $PBS_O_WORKDIR/
+  if (( $? == 0)); then
+    cd $PBS_O_WORKDIR
+    # Since the copyback worked, delete the file that triggers the post-execution script
+    rm $PBS_O_WORKDIR/PBS_WORK_DIR-$PBS_JOBID
+    rm $PBS_O_WORKDIR/PBS_WORK_NODE-$PBS_JOBID
+  else
+    echo &amp;quot;FAIL: rsync back to submission directory had problems. Execution directory not removed.&amp;quot;
+    echo &amp;quot;$PBS_JOBID on node $HOSTNAME had problems on final rsync&amp;quot; &amp;gt;&amp;gt; $HOME/PBS_WARNINGS
+    cd $PBS_O_WORKDIR
+    exit 1
+  fi
+fi
+}
+
+pbs_info_out
+copy_to_compute
+pbs_startjob
+copy_from_compute
+
+echo &amp;quot;PBS Job Information:&amp;quot;
+qstat -f $PBS_JOBID
+</code></pre></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Greenplanet2 Guidelines</a></h3>        
+                        <div class="description">
+                            <p class="text"><h3 id="greenplanetnotes">Greenplanet Notes:</h3>
+
+<ul>
+<li><strong>Job Queue:</strong> Greenplanet uses the SLURM job queuing system. For more information, see the Greenplanet <a href="https://ps.uci.edu/greenplanet/SLURM">SLURM</a> docs.</li>
+
+<li><strong>Partitions:</strong> Partitions or the name of compute nodes you can submit jobs to can be found on the Greenplanet <a href="https://ps.uci.edu/greenplanet/Partitions">Partitions</a> page. Note: For jobs queued on Greenplanet2, partitions names drop the <strong>mf_</strong> prefix.</li>
+
+<li><strong>File System:</strong> Below are the paths of where you should store your data (primary), temporary files (scratch), and where job files should be copied to and executed from (compute). For more information see docs for Greenplanet <a href="https://ps.uci.edu/greenplanet/Distributed_file_systems">Distributed File systems</a>
+
+
+<ul>
+<li>Primary: <code>/DFS-L/DATA/mobley/$USER</code> or <code>$HOME</code></li>
+
+<li>Scratch: <code>/DFS-L/SCRATCH/mobley/$USER</code></li>
+
+<li>Compute: <code>/work/$USER/$SLURM_JOBID</code></li></ul>
+</li>
+
+<li><strong>Purge Policy</strong>: Please be aware that there <em>will</em> be a <strong>30 day purge policy</strong> for scratch spaces. (This hasn't been put into place yet.) Files older than this will be automatically deleted.</li>
+
+<li><strong>Symlinks:</strong> Below I've provided the commands to create a symlinks for the distributed file system paths. This makes it so you can use <code>$HOME/lustre-data</code> instead of the full explicit path <code>/DFS-L/DATA/mobley/$USER</code>.</li>
+</ul>
+
+<pre><code class="bash language-bash">ln -s /DFS-L/DATA/mobley/$USER /export/home/$USER/lustre-data
+ln -s /DFS-L/SCRATCH/mobley/$USER /export/home/$USER/lustre-scratch
+ln -s /DFS-B/SCRATCH/mobley/$USER /export/home/$USER/beegfs-scratch
+ln -s /DFS-B/DATA/mobley/$USER /export/home/$USER/beegfs-data
+</code></pre>
+
+<p>In order to run Jupyter notebook servers on <strong>Greenplanet2</strong>, you must add the following to your <code>.bash_profile</code>:</p>
+
+<pre><code class="bash language-bash">'export JUPYTER_RUNTIME_DIR=/DFS-L/SCRATCH/mobley/$USER'
+</code></pre></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Running BLUES simulations on Greenplanet2</a></h3>        
+                        <div class="description">
+                            <p class="text"><h1 id="bluesguide">BLUES Guide</h1>
+
+<p>You can also find this guide on the Github repository: <a href="https://github.com/nathanmlim/blues-apps/blob/master/docs/BLUES-Guide.md">BLUES-Guide.md</a></p>
+
+<p>In this guide you will learn how to prepare your directory and submit BLUES simulations to the queue on Greenplanet2 (TSCC coming soon).</p>
+
+<h2 id="filepreparation">File preparation</h2>
+
+<p>After equilibrating your systems by short trajectory MD (&quot;preparation phase&quot;), you will want to launch the MD and BLUES simulations from the same point to allows us to equally compare the two methods. Below I will walk through an example of how to start launching BLUES simulations after the preparation phase:</p>
+
+<p>After docking and letting the SEH fragments equilibrate, the poses for each of my molecules were written into a combined file <code>ONR_1-prep.oeb.gz</code>. I will need to split the poses into their own files, which can be done using the <a href="../scripts/splitpose.py"><code>splitpose.py</code></a> script (copied below).</p>
+
+<pre><code>from openeye.oechem import *
+from optparse import OptionParser
+def splitOEMol(molid):
+    with oemolistream('%s.oeb.gz' % molid ) as ifs:
+        for m in ifs.GetOEMols():
+            title = m.GetTitle()
+            print('Unpacking OEMolecule:', title)
+            with oemolostream(title+'-prep.oeb.gz') as ofs:
+                OEWriteConstMolecule(ofs,m)
+
+
+
+parser = OptionParser()
+parser.add_option('-m','--molid', dest='molid', type='str',
+                  help='molecule ID')
+(options, args) = parser.parse_args()
+
+splitOEMol(options.molid)
+</code></pre>
+
+<p>Running the python script looks like:</p>
+
+<pre><code>(floes) limn1@gplogin2:~/lustre-data/blues-apps/limn1-SCRATCH/ONR_1/prep
+$ python splitpose.py -m ONR_1-prep
+Unpacking OEMolecule: pEH_lONR_1_0_c1
+Unpacking OEMolecule: pEH_lONR_1_0_c0
+Unpacking OEMolecule: pEH_lONR_1_0_c3
+Unpacking OEMolecule: pEH_lONR_1_0_c2
+Unpacking OEMolecule: pEH_lONR_1_0_c4
+</code></pre>
+
+<p>This should create separate files for each of the poses for molecule <code>ONR_1</code></p>
+
+<pre><code>$ tree .
+&amp;#9500;&amp;#9472;&amp;#9472; ONR_1-prep.oeb.gz
+&amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c0-prep.oeb.gz
+&amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c1-prep.oeb.gz
+&amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c2-prep.oeb.gz
+&amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c3-prep.oeb.gz
+&amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c4-prep.oeb.gz
+&amp;#9492;&amp;#9472;&amp;#9472; splitpose.py
+</code></pre>
+
+<p>For each pose, I will want to create a separate directory to contain the corresponding <code>.oeb.gz</code> and copies of the files: <code>gp2_blues.slurm</code>, <code>rotmove_cuda.yaml</code>, and <code>seh_rotmove.py</code> which are all located in the <a href="../scripts/blues"><code>scripts/blues/</code></a> directory. Below is a quick shell script to do exactly that:</p>
+
+<pre><code>for i in {0..4}; do
+    mkdir -p c${i}
+    mv prep/pEH_lONR_1_0_c${i}-prep.oeb.gz c${i}
+    cp ~/lustre-data/blues-apps/scripts/blues/* c${i}
+done
+</code></pre>
+
+<p>My directory tree should now look like:</p>
+
+<pre><code>(floes) limn1@gplogin2:~/lustre-data/blues-apps/limn1-SCRATCH/ONR_1
+$ tree .
+&amp;#9500;&amp;#9472;&amp;#9472; c0
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; gp2_blues.slurm
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c0-prep.oeb.gz
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; rotmove_cuda.yaml
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9492;&amp;#9472;&amp;#9472; seh_rotmove.py
+&amp;#9500;&amp;#9472;&amp;#9472; c1
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; gp2_blues.slurm
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c1-prep.oeb.gz
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; rotmove_cuda.yaml
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9492;&amp;#9472;&amp;#9472; seh_rotmove.py
+&amp;#9500;&amp;#9472;&amp;#9472; c2
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; gp2_blues.slurm
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c2-prep.oeb.gz
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; rotmove_cuda.yaml
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9492;&amp;#9472;&amp;#9472; seh_rotmove.py
+&amp;#9500;&amp;#9472;&amp;#9472; c3
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; gp2_blues.slurm
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c3-prep.oeb.gz
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; rotmove_cuda.yaml
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9492;&amp;#9472;&amp;#9472; seh_rotmove.py
+&amp;#9500;&amp;#9472;&amp;#9472; c4
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; gp2_blues.slurm
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c4-prep.oeb.gz
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; rotmove_cuda.yaml
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9492;&amp;#9472;&amp;#9472; seh_rotmove.py
+&amp;#9492;&amp;#9472;&amp;#9472; prep
+    &amp;#9500;&amp;#9472;&amp;#9472; ONR_1-prep.oeb.gz
+    &amp;#9492;&amp;#9472;&amp;#9472; splitpose.py
+</code></pre>
+
+<h2 id="arrayjobsubmission">Array Job Submission</h2>
+
+<p>Once you've prepared your files for each pose, you will then want to submit 3-5 replicates for each molecule pose through using SLURM Job Arrays (controlled by the <code>sbatch -a</code> command).</p>
+
+<p><strong>Please execise care when submitting jobs through this job arrays!</strong></p>
+
+<p><strong>Important Notes:</strong></p>
+
+<ul>
+<li>You must use the <code>sbatch</code> command from the sub-directory belonging to the individual pose.</li>
+
+<li>The SLURM<em>JOB</em>NAME (<code>-J</code>) must correspond with the exact molecule name and pose number (the <em>pEH_l</em> prefix can be dropped)</li>
+
+<li>If you want an email notification when the job ENDS, use the <code>--mail-user=$USER@uci.edu</code> flag (replacing $USER with your appropriate username)</li>
+
+<li>The reason for running multiple copies of the same BLUES simulation is because with each BLUES iteration, there is a randomly proposed rotational move. Thus, no BLUES simulation will be the same.</li>
+</ul>
+
+<p>You'll end up doing something like below:</p>
+
+<pre><code class="bash language-bash">#First enter the sub-directory for the individual pose
+cd c0
+#Submit 5 copies for this molecule pose
+sbatch -a 0-4 --mail-user=$USER@uci.edu -J ONR_1_0_c0 gp2_blues.slurm
+
+###REPEAT FOR OTHER poses
+
+cd c4
+#Submits 3 replicates
+sbatch -a 0-2 --mail-user=$USER@uci.edu -J ONR_1_0_c4 gp2_blues.slurm
+</code></pre>
+
+<p>Each replicate will be run out of it's own sub-directory called <code>blues-N</code> where N is the SLURM array id number.</p>
+
+<h2 id="jobmonitoring">Job monitoring</h2>
+
+<p>As the job is <em>running</em>, you'll find temporary files in your directory with the file names <code>SLURM_WORK_{NODE/DIR}-{SLURM_JOB_ID}</code>. These are simple text files that will point to the node and location of your job. You can simply call <code>cat SLURM_WORK_*</code> to get the information,</p>
+
+<p>Note: Had to use an example job from another user as my jobs are still in queue.</p>
+
+<pre><code class="bash language-bash">osatom@gplogin2:~/lustre-data/blues/blues/ONR_1/c0
+$ cat SLURM_WORK_*
+/work/osatom/406092
+c-9-9
+</code></pre>
+
+<p>Simply SSH into the compute node and then navigate to the working directory:</p>
+
+<pre><code>$ ssh c-9-9
+$ cd /work/osatom/42092/
+osatom@c-9-9:cd /work/osatom/42092
+$ cd blues-1
+osatom@c-9-9:/work/osatom/42092/blues-1
+</code></pre>
+
+<p>You can then check the progress of the job via <code>tail *.log</code></p>
+
+<pre><code>$ tail *.log
+BLUES Iteration: 82
+Advancing 25000 NCMC switching steps...
+ncmc: 82    20.0%   5000    0.2 153.57400789787897  29.8    --
+ncmc: 82    40.0%   10000   0.4 178.47045587219134  29.8    19:51:52
+Performing RandomLigandRotationMove...
+ncmc: 82    60.0%   15000   0.6 179.7239195736041   29.8    6:38:18
+ncmc: 82    80.0%   20000   0.8 160.54290806407212  29.8    2:13:06
+ncmc: 82    100.0%  25000   1.0 106.4188419347539   29.8    0:00
+NCMC MOVE REJECTED: work_ncmc -157.26361857198413 &amp;lt; -1.6269750550804032
+Advancing 25000 MD steps...
+</code></pre>
+
+<h2 id="jobcompletion">Job completion</h2>
+
+<p>When the BLUES simulations complete, you'll find the directory all the simulation files for <strong>each pose</strong> nested in sub-directories denoted with <code>blues-N</code>. For example, if I had submitted 3 replicates for pose <code>c0</code>, the directory tree for pose <code>c0</code> may look like below:</p>
+
+<pre><code>(floes) limn1@gplogin2:~/lustre-data/blues-apps/limn1-SCRATCH/ONR_1
+$ tree c0
+c0
+&amp;#9500;&amp;#9472;&amp;#9472; blues-0
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-0.ene
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-0.log
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-0.nc
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-0-ncmc.nc
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-0.rst7
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c0-prep.oeb.gz
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c0-prep.pdb
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; rotmove_cuda.yaml
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9492;&amp;#9472;&amp;#9472; seh_rotmove.py
+&amp;#9500;&amp;#9472;&amp;#9472; blues-1
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-1.ene
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-1.log
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-1.nc
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-1-ncmc.nc
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-1.rst7
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c0-prep.oeb.gz
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c0-prep.pdb
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; rotmove_cuda.yaml
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9492;&amp;#9472;&amp;#9472; seh_rotmove.py
+&amp;#9500;&amp;#9472;&amp;#9472; blues-2
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-2.ene
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-2.log
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-2.nc
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-2-ncmc.nc
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; ONR_1_0_c0-2.rst7
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c0-prep.oeb.gz
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; pEH_lONR_1_0_c0-prep.pdb
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9500;&amp;#9472;&amp;#9472; rotmove_cuda.yaml
+&amp;#9474;&amp;#160;&amp;#160; &amp;#9492;&amp;#9472;&amp;#9472; seh_rotmove.py
+</code></pre>
+
+<p>Notes on file extensions:</p>
+
+<ul>
+<li><code>.ene</code> contains the following information: <code>&amp;quot;Step&amp;quot;,&amp;quot;Time (ps)&amp;quot;,&amp;quot;Potential Energy (kilocalorie/mole)&amp;quot;,&amp;quot;Kinetic Energy (kilocalorie/mole)&amp;quot;,&amp;quot;Total Energy (kilocalorie/mole)&amp;quot;,&amp;quot;Temperature (K)&amp;quot;</code></li>
+
+<li><code>.log</code> contains informatin on the simulation timing, speed, and progression.</li>
+
+<li><code>.nc</code> corresponds to the frames taken from the MD part of the BLUES simulation.</li>
+
+<li><code>-ncmc.nc</code> contains simulation frames from the NCMC part of the BLUES simulation.</li>
+
+<li><code>.rst7</code> is our restart file for the BLUES simulation, updated at every iteration.</li>
+
+<li><code>.yaml</code> is our configuration file for the BLUES simulation.</li>
+</ul></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">10 Minutes Markdown Tutorial</a></h3>        
+                        <div class="description">
+                            <p class="text"><p><a href="https://commonmark.org/help/tutorial/">Interactive 10 Minute Markdown Tutorial</a></p>
+
+<p><a href="https://commonmark.org/help/">Markdown Reference</a></p>
+
+<p><a href="https://help.trello.com/article/821-using-markdown-in-trello">Supported Markdown in Trello</a></p></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Getting started with writing</a></h3>        
+                        <div class="description">
+                            <p class="text"></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Backup Strategies</a></h3>        
+                        <div class="description">
+                            <p class="text"><h1 id="introdataisprecious">Intro: Data is PRECIOUS!</h1>
+
+<p><em>May this guide provide you some pointers on backing up your data.</em></p>
+
+<p>If you're anything like me and have accumulated massive collections of photos, videos, ~~music and video games~~ Linux ISOs over the years. You will understand that <strong>DATA IS PRECIOUS!</strong> and I just don't mean personal data, but research related data is <em>extremely</em> precious as well. 
+!<a href="https://media.giphy.com/media/3oFyCVxsQn6RBa0r5u/giphy.gif &quot;Precious&quot;">Precious</a>
+You don't want to be that student in their final year losing their entire PhD project because their laptop got stolen or they kept all their calculated data in one place which has now gone down.These days compute clusters either use a N-days purge policy, do not have their data stores backed up (I have lost data on UCI-HPC due to this twice!), or even have their <a href="https://en.wikipedia.org/wiki/RAID">RAID</a> systems encounter simultaneous disc failures. </p>
+
+<p>The point being is that <strong>hard drives do fail and they fail often</strong>. What this means for you, is that you should always keep a back-up of your data and then a redundant copy of that back-up. I like to think of it this way: one is your <em>incremental backup</em>  which is for times where you accidentally <code>rm -rf ./*</code> a directory (please don't type that out), and need to restore a copy of that file quickly. These would be run on a weekly basis, so that you at least have a fairly <em>recent</em> copy on hand. Now, a back-up of your back-up is basically for archival purposes or &quot;cold-storage&quot; updated on a monthly/quarterly basis. This is for scenarios where you have a complete catastrophic disc failure and your incremental back-ups are unable to restore your file. By having a &quot;cold-storage&quot; area, you at least have something that is a month old, rather than nothing. Typically, archived files are large batches of your database split and compressed so that files themselves aren't readily accessible, but you can rebuild your entire database from nothing.</p>
+
+<h1 id="generalrules">General Rules</h1>
+
+<p>My <strong>minimal</strong> rule for backing up data is to <em>always</em> have my data up on 1 cloud service + 1 local disk. I keep a redundant back-up for both cloud and local disks. (i.e. I keep 4 copies of my data: 2 on the cloud and 2 locally). </p>
+
+<p>This is because <a href="https://en.wikipedia.org/wiki/Data_degradation">data rot</a> is a very real thing. If you've never seen what it looks like, try digging out some VHS tapes that maybe your parents recorded home/family movies on. It might look something like <img src="https://media.giphy.com/media/4c5vAARNON0yc/giphy.gif" alt="DataRot1" />. This all goes to show that data cannot be stored perfectly indefinitely. So having copies of your backups which are left untouched in your day-to-day and periodically refreshed on a monthly basis is critical for keeping your data long-term as well.</p>
+
+<h3 id="ibackupmydatato3places">I backup my data to 3 places:</h3>
+
+<ul>
+<li>Manual backup to the cloud using rclone to sync to google drive. I dump everything to google drive whenever I feel like losing data at this point in the project would hurt.
+
+
+<ul>
+<li>Local incremental backups: I keep an external drive connected to my macbook and Linux machine to let it incrementally sync on a regular schedule (daily for my macbook/weekly for my linux machine)</li>
+
+<li>Redundant local backup: I built myself a NAS server that uses something called unRAID (https://lime-technology.com/network-attached-storage/) that I use for monthly backups. This lets me automatically keep 2 copies of the data stored on the server by using a <a href="https://en.wikipedia.org/wiki/Data_degradation#cite_note-4">ZFS filesystem</a> and a parity drive to build things back from scratch.</li></ul>
+</li>
+</ul>
+
+<p>For local backups, you'll want to stick to HGST/Hitachi/Western Digital/Samsung/Toshiba, in that order. Seagate tends to be cheaper--for a reason. They have the <a href="https://www.extremetech.com/extreme/175089-who-makes-the-most-reliable-hard-drives">highest failure rate for their consumer level drives</a> with &quot;consumer&quot; meaning 1-4TB. All my seagate drives tend to die after the 2-3 year warranty mark, while my Western Digital drives tend to go 3-5 years (on almost continuous spin).</p>
+
+<h2 id="somethingstonote">Some things to note:</h2>
+
+<ul>
+<li>As a UCI student you get UNLIMITED Google Drive space. So use it and use it often, except for personal data (because UCI technically owns what is on their google drive space).</li>
+
+<li>Paying for data storage through Google 1 or iCloud is CHEAPER than spending time rebuilding or trying to regenerate your lost/corrupted data.</li>
+
+<li>Moving lots of small files destroys spinning discs. When doing such operations, zip them up into a single larger file.</li>
+</ul>
+
+<hr />
+
+<h1 id="toolsfobackingup">Tools fo backing up:</h1>
+
+<h2 id="nativebackups">Native BackUps</h2>
+
+<ul>
+<li><p>Google Drive Back Up and Sync</p></li>
+
+<li><p>macOS:</p>
+
+<ul>
+<li>Time Machine &#8212; Automated local backups</li>
+
+<li>iCloud + Cirrus (gives you complete control)</li></ul></li>
+
+<li><p>Ubuntu:</p>
+
+<p><ul>
+<li><a href="https://github.com/bit-team/backintime">BackInTime</a></li></ul>
+
+<p></p></li>
+</ul></p>
+
+<h2 id="localcloudtocloudservice">Local/Cloud-To-Cloud Service</h2>
+
+<ul>
+<li>Rclone &#8212; rsync for cloud storage
+
+
+<ul>
+<li><a href="https://github.com/ncw/rclone/wiki/Third-Party-Integrations-with-rclone">Rclone Third-Party Plugins</a>
+
+
+<ul>
+<li><a href="https://github.com/rsyncOSX/rcloneosx">RcloneOSX</a> is a macOS GUI utilizing rclone. It is compiled with support for macOS 10.11 - 10.13. RcloneOSX executes rclone tasks as single tasks, as batch tasks and by schedule.</li></ul>
+</li>
+
+<li><a href="https://mmozeiko.github.io/RcloneBrowser/">Rclone Browser</a> A simple cross-platform GUI for rclone: https://mmozeiko.github.io/RcloneBrowser/ Works on Windows, macOS and GNU/Linux.
+
+
+<ul>
+<li><a href="https://github.com/johnjones4/Doomsday-Machine-2">Doomsday Machine</a> is a tool for backing up many cloud services to a local machine including IMAP email, Evernote, Google Contacts, Todoist, GitHub projects, LastPass data, and others. It uses RClone as one of the many tools that perform a nightly backup of services to a Docker container and then archives the backup for long term storage.</li></ul>
+</li></ul>
+</li>
+</ul></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Mobley Lab Google Docs Repository</a></h3>        
+                        <div class="description">
+                            <p class="text"></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                <h2>// Workshops</h2>
+                                    
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Intro to Linux on the HPC (Friday, 26th)</a></h3>        
+                        <div class="description">
+                            <p class="text"><p>This course covers how to best exploit the bash shell for both interactive work and batch jobs, moving &amp; simple manipulation of data, as well very short introductions to programming in bash, Perl, and R. </p>
+
+<p><strong>Date</strong>: Friday, October 26, 2018
+<strong>Time</strong>: 9am-5pm (coffee and lunch will be provided)
+<strong>Location</strong>: Donald Bren Hall, Room 4011
+<strong>Cost</strong>: $10
+<strong>Register online before 10/26/18</strong>: https://secure.touchnet.net/C21570<em>ustores/web/product</em>detail.jsp?PRODUCTID=1022&amp;SINGLESTORE=true</p>
+
+<h1 id="documentation">Documentation</h1>
+
+<ul>
+<li><a href="http://moo.nac.uci.edu/~hjm/biolinux/Linux_Tutorial_12.html#_introduction">LinuxTutorial</a></li>
+
+<li><a href="https://hpc.oit.uci.edu/">HPC Overview</a></li>
+</ul></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Agile for Any Project Nov 8th - 10th</a></h3>        
+                        <div class="description">
+                            <p class="text"><h1 id="coursedescription">Course Description</h1>
+
+<p>This class will give students the tools to utilize Agile project management methodology for any project, in any industry. The course begins with an overview of the Agile and lean practices, then a discussion regarding key elements of how Agile developed through lean methods can be applied to all types of projects. Students will learn to identify stakeholders and process groups using different methodologies including Kanban, Daily short Stand Up Meetings, the use of Burn Down Charts for tracking and monitoring progress, and finally the role and ongoing involvement of the Product Owner in the progressive elaboration of the project requirements. The use of Scrum methodologies for both software and other types of projects will be covered. Also, various Agile and Scrum Certifications currently available will be reviewed.</p>
+
+<h2 id="instructor">Instructor</h2>
+
+<p>Marty Wartenberg, M.B.A., P.E., has spent over 40 years managing companies and projects in the areas of Aerospace, software, commercial product development, oil field instrumentation and pharma R&amp;D. He has worked with many companies setting up project offices and coaching high technology project teams. His projects have been featured in the PMNet as examples of the application of basic and advanced project management techniques in high technology rapid development type projects. Marty has received a distinguished instructor award from UCI and had been selected by the McDonald Douglas Corporation (Now Boeing) as a major contributor during the C-17 training program. He has taught project management in Europe, the Middle East, Asia and South America. He received his formal Project Management, Systems Engineering and Government Procurement training at the Defense Systems Management College (Now DAU) at Fort Belvoir VA.</p>
+
+<h2 id="bldg8room1045">Bldg 8 Room 1045</h2>
+
+<p>https://ce.uci.edu/courses/sectiondetail.aspx?year=2018&amp;term=FALL&amp;sid=00110</p>
+
+<h1 id="freeagileprojectmanagementtoolsmountaingoatsoftware">Free Agile Project Management Tools (Mountain Goat Software)</h1>
+
+<p>We are providing this collection of tools for your use on agile projects. These tools are based on ideas described in Mike Cohn's books. You can read more information about agile project management training expert and Certified Scrum Trainer, Mike Cohn</p>
+
+<p>If you find that these free agile tools are not enough and you would like more hands-on experience with Scrum and agile projects, please check out the agile and Scrum training courses we offer.</p>
+
+<p><strong>Found here</strong>:</p>
+
+<ul>
+<li>Velocity range calculator</li>
+
+<li>Relative weighting</li>
+
+<li>Theme screening </li>
+
+<li>Theme scoring</li>
+
+<li>planning poker</li>
+
+<li>project success sliders</li>
+</ul>
+
+<h1 id="agileprojectmanagementcertifications">Agile Project Management Certifications</h1>
+
+<p>1) Scrum.org: https://www.scrum.org/professional-scrum-certifications</p>
+
+<ul>
+<li><strong>Marty recommends PSM</strong> ($300 for level 1, level 2 and 3 <em>not</em> needed) over CSM</li>
+
+<li>put &quot;PSM equivelent to certified scrum master&quot; on resume (helps get throught the filtering)</li>
+</ul>
+
+<p>2) Scrum Alliance: https://www.scrumalliance.org/get-certified</p>
+
+<ul>
+<li><strong>Marty recommends CSM</strong> </li>
+
+<li>Note: couple thousand dollars, he recommends not doing it unless company/boss pays for it</li>
+</ul></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Markov State Modeling with PyEMMA (Aug 14th, 2017)</a></h3>        
+                        <div class="description">
+                            <p class="text"><p>Registration: MD data analysis, Markov modeling + PyEMMA workshop, UCSD, August 14
+In collaboration between the labs of Frank No&#233; (FU Berlin) and Cecilia Clementi (Rice), we will host a 2-day Markov modeling workshop at Rice University, Houston, introducing theory, methods and how to use the software PyEMMA (www.pyemma.org) for MD data analysis. Participants will learn how to construct Markov models for molecular dynamics simulation data and how to analyze them quantitatively. The course will include both theory lessons (20-30%) as well as practical applications using the software package PyEMMA (Emma's Markov Model Algorithms). All computer applications will be done in Jupyter Notebooks (former IPython).</p>
+
+<p>9:00 - 10:30 Frank No&#233;: Introduction to molecular kinetics and Markov modeling
+10:30 - 11:00 break
+11:00 - 12:30 Cecilia Clementi: Coarse-graining
+12:30 - 14:00 break
+14:00 - 17:00 Hands-on Session (Mostly computer tutorials, with short presentations):</p>
+
+<p>Email address *
+limn1@uci.edu
+Name:
+Nathan M. Lim</p>
+
+<p>Your research group and institution:
+David Mobley Lab @ UC-Irvine</p>
+
+<p>When and Where?</p>
+
+<ul>
+<li>August 14 * 2303 NSB (Natural Science Building), UC San Diego</li>
+</ul>
+
+<p>Information for the Computer Tutorial (Afternoon)</p>
+
+<ul>
+<li>You should be familiar with Python (standard Python, numpy, and Jupyter notebooks). * Bring your own computer, make sure you have network access. * Install PyEMMA (preferably through anaconda) as described here: www.emma-project.org/latest/INSTALL.html * We will be using the following Dropbox folder for course materials. This folder is still going to be updated, so do not download its contents before the course date. https://www.dropbox.com/sh/la3bphkgsp2m6qf/AAD7-T0K5j0zDreVKUuGb98Ga?dl=0 * There is no workshop fee, but spaces are limited, so please register here * Contact: frank.noe@fu-berlin.de</li>
+</ul></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Scalable and Reproducible Structural Bioinformatics Workshop (May 7th - 9th 2018)</a></h3>        
+                        <div class="description">
+                            <p class="text"><p>MMTF workshop: Scalable and Reproducible Structural Bioinformatics Workshop &amp; Hackathon 2018. This workshop will be held May 7 &#8211; 9, 2018 at the University of California, San Diego and hosted by the Structural Bioinformatics Laboratory at the San Diego Supercomputer Center.</p>
+
+<p>Sponsorship This workshop is sponsored by the NIH Big Data to Knowledge (BD2K) initiative. Air travel and 4-day lodging can be provided for non-commercial participants, including a limited number of international participants. Applicants will be selected based on the best fit for the program on a rolling basis.</p>
+
+<p>Apply now to secure your place in the workshop. https://www.eiseverywhere.com/mmtfworkshop2018/</p>
+
+<p>Application deadline: April 1, 2018.</p>
+
+<p>This 3-day hands-on workshop and hackathon introduces you to:</p>
+
+<p>Application of state-of-the-art Big Data technologies to Structural Bioinformatics
+Data mining and machine learning
+2D/3D visualization and deployment in Jupyter Notebooks
+The first two days of the workshop combine lectures, hands-on applications, and programming sessions. On the third day, participants apply the new technologies to their own projects.</p>
+
+<p>This workshop is aimed at graduate students, postdocs, staff, faculty, industrial researchers, and scientific software developers. Experience with Python is required.</p></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">MolSSI Phase-I Bootcamp (July 30th - August 3rd, 2018)</a></h3>        
+                        <div class="description">
+                            <p class="text"><p>At the start of each Phase-I fellowship, MolSSI hosts a week-long bootcamp for all incoming fellows at the MolSSI headquarters in Blacksburg, VA. This bootcamp will serve four primary goals:
+    &#8226; To teach MolSSI &#8220;best practice&#8221; standards for software development. These will include design patterns, testing, continuous integration, code coverage, and documentation.
+    &#8226; To teach community tools that will help you become a more efficient scientist and programmer.
+    &#8226; To interact directly with your software scientist mentor to help your mentor understand and support your project.
+    &#8226; To encourage interactions within the MolSSI community.</p>
+
+<p>Travel and accomodation for this bootcamp is fully funded by the MolSSI and will count as the expected MolSSI visitation during Phase I funding.</p>
+
+<p>To assist us in tailoring this bootcamp for you, please fill out the following survey by this coming Tuesday, June 12th:
+https://molssi.typeform.com/to/i8rRX7</p>
+
+<p>As a note this bootcamp is not required, this is especially true during the summer months as schedules tend to become quite complicated during this time. However, it should be noted previous MSFs have found this bootcamp extremely advantageous to their research and programming abilities. If we do schedule the bootcamp when you are unable to attend we will further encourage you to find a time in which you can visit us over the next several months.</p></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                <h2>// Resources</h2>
+                                    
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Awesome Repositories</a></h3>        
+                        <div class="description">
+                            <p class="text"><h1 id="awesomehttpsawesomerebadgesvghttpsawesomere"><a href="https://awesome.re"><img src="https://awesome.re/badge.svg" alt="Awesome" /></a></h1>
+
+<p><code>Awesome</code> lists are curated collections of tools/information for a specific topic. The <code>Awesome</code> project is managed by <a href="https://blog.sindresorhus.com/about-sindre-sorhus-42786d2e191b">Sindre Sorhus</a></p>
+
+<p><a href="https://github.com/sindresorhus/awesome">Awesome</a> - Curated list of awesome lists. Topics include: Platforms, Programming Languages, Front-End Development, Back-End Development, Computer Science, Big Data, Theory, Books, Editors, Gaming, Development Environment, Entertainment, Databases, Media, Learn, Security, Content Management Systems, Hardware, Business, Work, Networking, Decentralized Systems, Miscellaneous</p>
+
+<h2 id="awesomemodules">Awesome Modules</h2>
+
+<p><a href="https://github.com/vinta/awesome-python">Awesome Python</a> - A curated list of awesome Python frameworks, libraries, software and resources.
+<a href="https://github.com/mauhai/awesome-jupyterlab">Awesome Jupyter</a> - A curated list of awesome JupyterLab extensions and resources.
+<a href="https://github.com/webpro/awesome-dotfiles">Awesome Dotfiles</a> - 
+A curated list of dotfiles resources. Inspired by the awesome list thing. Related to <a href="https://dotfiles.github.io/">Dotfiles - Github.IO</a>
+<a href="https://github.com/k4m4/terminals-are-sexy">Terminals Are Sexy</a> -  A curated list of Terminal frameworks, plugins &amp; resources for CLI lovers.
+<a href="https://github.com/awesome-lists/awesome-bash">Awesome BASH</a>
+<a href="https://github.com/unixorn/awesome-zsh-plugins">Awesome ZSH Plugins</a>
+<a href="https://github.com/akrawchyk/awesome-vim">Awesome VIM</a>
+<a href="https://github.com/hothero/awesome-rails-gem">Awesome Rails Gems</a></p></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Google Colab with Github</a></h3>        
+                        <div class="description">
+                            <p class="text"><p>Using Google Colab with GitHub
+Google Colaboratory is designed to integrate cleanly with GitHub, allowing both loading notebooks from github and saving notebooks to github.</p>
+
+<p>Loading Public Notebooks Directly from GitHub
+Colab can load public github notebooks directly, with no required authorization step.</p>
+
+<p>For example, consider the notebook at this address: https://github.com/googlecolab/colabtools/blob/master/notebooks/colab-github-demo.ipynb.</p>
+
+<p>The direct colab link to this notebook is: https://colab.research.google.com/github/googlecolab/colabtools/blob/master/notebooks/colab-github-demo.ipynb.</p></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Automating App integrations and aggregating your notification feeds</a></h3>        
+                        <div class="description">
+                            <p class="text"><h1 id="nathanlimsappintegrations">Nathan Lim's App Integrations</h1>
+
+<p>Since I use the free version of these services, sharing recipes is disabled. Although there are limitations on how many bots/integrations you may have on each account. I've gone around this by basically using all 3 services to meet my needs.</p>
+
+<p>Below are some examples of how I use these App integration services to simplify my workflow or aggregate my data into a single place/account. Specifically, I use <strong>Google Calendar</strong> to aggregate any events with a specific associated date and let me visualize these events in a traditional calendar layout. Then, I use <strong>Slack</strong> as my centralized &quot;live feed&quot; for any sort of activity on Trello and service for notifications, while I disable notifications on the native apps so I don't get double notifications.</p>
+
+<p>On Slack I've created my own private channel <code>#nml-bot-feed</code> and added two Bots <code>Google Calendar</code> and <code>Trello Alerts</code> which then allows me to aggregate all my notifications and see via Slack through a Daily summary feed. Example below of the feed in my private channel.
+<img src="https://trello-attachments.s3.amazonaws.com/5bbe6c514769f33a50e10104/5bc0d64531fbdf7824e6c6bd/62b3143baf4cb35332a7b79732175e89/SlackBots.png" alt="SlackBots" /></p>
+
+<h2 id="zapier">Zapier</h2>
+
+<ul>
+<li>Google Calendar -&gt; Google Calendar: 
+
+
+<ul>
+<li>Copy Mobley Calendar to Personal Calendar
+
+
+<ul>
+<li>Note: I like to have a centralized calendar that is color coded based on the event type as opposed to having several separate calendars. This helps centralize my events onto my personal calendar.</li></ul>
+</li></ul>
+</li>
+</ul>
+
+<h2 id="automateio">Automate.io</h2>
+
+<ul>
+<li>Google Calendar -&gt; Trello: 
+
+
+<ul>
+<li>When Event Modified on <code>PharmaSci Seminars calendar</code> --&gt; Add or Update a Card on Trello Board: Knowledge Base</li></ul>
+</li>
+
+<li>Trello -&gt;  Todoist:
+
+
+<ul>
+<li>When Card Moved to <code>Review</code> List --&gt;  Add or Update a Card: Append to description <code>&amp;lt;Updater full name&amp;gt; sent for review on &amp;lt;Card Moved Date&amp;gt;</code> --&gt; Add a Task on Todoist </li>
+
+<li>Note: I do this to add a Todo task for when my undergrads need me to review something.</li></ul>
+</li>
+</ul>
+
+<h2 id="ifttt">IFTTT</h2>
+
+<ul>
+<li>Trello -&gt; Slack:
+
+
+<ul>
+<li>If Card added to SEH-GRP board, then Post a message to Slack Channel <code>#blues_applications</code></li></ul>
+</li>
+
+<li>Github -&gt; Todoist:
+
+
+<ul>
+<li>Github PR or Issue assigned to me --&gt; Add a Task on Todoist. </li></ul>
+</li>
+</ul></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Software Carpentry</a></h3>        
+                        <div class="description">
+                            <p class="text"></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">macOS Dev Setup Guide</a></h3>        
+                        <div class="description">
+                            <p class="text"></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+                                                                                                        
+                        <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <h3><a target="_blank" href="">Technical Computing Wiki</a></h3>        
+                        <div class="description">
+                            <p class="text"><p>Useful Wiki for benchmarking and other compute related things</p></p>
+                        </div>
+                                                                                                                    </div>
+             </div>
+        </div>
+        </div>
+</body>
+</html>
